@@ -80,7 +80,7 @@ var Paint = (function () {
     var COLOR_PICKER_TOP = 523;
 
     var RESIZING_RADIUS = 20;
-    var RESIZING_FEATHER_SIZE = 8; //in pixels 
+    var RESIZING_FEATHER_SIZE = 8; //in pixels
 
     //box shadow parameters
     var BOX_SHADOW_SIGMA = 5.0;
@@ -96,6 +96,9 @@ var Paint = (function () {
     var SPECULAR_SCALE = 0.5;
     var DIFFUSE_SCALE = 0.15;
     var LIGHT_DIRECTION = [0, 1, 1];
+
+    //canvas resizing
+    var CANVAS_RESIZE = false;
 
 
     var HISTORY_SIZE = 4; //number of snapshots we store - this should be number of reversible actions + 1
@@ -116,10 +119,10 @@ var Paint = (function () {
         //take the 1s off the ends
         coefficients.shift();
         coefficients.pop();
-        
+
         var normalizationFactor = 0;
         for (var i = 0; i < coefficients.length; ++i) {
-            normalizationFactor += coefficients[i]; 
+            normalizationFactor += coefficients[i];
         }
 
         var shader = [
@@ -367,7 +370,7 @@ var Paint = (function () {
             }).bind(this));
 
 
-            
+
             this.qualityButtons = new Buttons(document.getElementById('qualities'),
                 QUALITIES.map(function (q) { return q.name })
             , INITIAL_QUALITY, (function (index) {
@@ -460,7 +463,7 @@ var Paint = (function () {
             this.onResize();
 
             window.addEventListener('resize', this.onResize.bind(this));
-            
+
 
             this.mouseX = 0;
             this.mouseY = 0;
@@ -506,7 +509,7 @@ var Paint = (function () {
             //when we finish resizing, we then resize the simulator to match
             this.newPaintingRectangle = null;
 
-            
+
             this.interactionState = InteractionMode.NONE;
 
 
@@ -533,8 +536,8 @@ var Paint = (function () {
         var shadowDrawState = wgl.createDrawState()
           .uniform2f('u_bottomLeft', rectangle.left, rectangle.bottom)
           .uniform2f('u_topRight', rectangle.getRight(), rectangle.getTop())
-          .uniform1f('u_sigma', BOX_SHADOW_SIGMA) 
-          .uniform1f('u_alpha', alpha) 
+          .uniform1f('u_sigma', BOX_SHADOW_SIGMA)
+          .uniform1f('u_alpha', alpha)
           .enable(wgl.BLEND)
           .blendFunc(wgl.ONE, wgl.ONE_MINUS_SRC_ALPHA)
           .useProgram(this.shadowProgram)
@@ -1010,11 +1013,11 @@ var Paint = (function () {
                     this.paintingRectangle.getRight() - MIN_PAINTING_WIDTH);
                 this.newPaintingRectangle.width = this.paintingRectangle.left + this.paintingRectangle.width - this.newPaintingRectangle.left;
             }
-            
+
             if (this.resizingSide === ResizingSide.RIGHT || this.resizingSide === ResizingSide.TOP_RIGHT || this.resizingSide === ResizingSide.BOTTOM_RIGHT) {
                 this.newPaintingRectangle.width = Utilities.clamp(mouseX - this.paintingRectangle.left, MIN_PAINTING_WIDTH, this.maxPaintingWidth);
             }
-            
+
             if (this.resizingSide === ResizingSide.BOTTOM || this.resizingSide === ResizingSide.BOTTOM_LEFT || this.resizingSide === ResizingSide.BOTTOM_RIGHT) {
                 this.newPaintingRectangle.bottom = Utilities.clamp(mouseY,
                     this.paintingRectangle.getTop() - this.maxPaintingWidth,
@@ -1022,7 +1025,7 @@ var Paint = (function () {
 
                 this.newPaintingRectangle.height = this.paintingRectangle.bottom + this.paintingRectangle.height - this.newPaintingRectangle.bottom;
             }
-            
+
             if (this.resizingSide === ResizingSide.TOP || this.resizingSide === ResizingSide.TOP_LEFT || this.resizingSide === ResizingSide.TOP_RIGHT) {
                 this.newPaintingRectangle.height = Utilities.clamp(mouseY - this.paintingRectangle.bottom, MIN_PAINTING_WIDTH, this.maxPaintingWidth);
             }
@@ -1037,41 +1040,50 @@ var Paint = (function () {
         this.mouseY = mouseY;
     };
 
+    Paint.prototype.topggleCanvasResizeLock = function(){
+      // toggle drag to unlock canvas
+      CANVAS_RESIZE=!CANVAS_RESIZE;
+      var img = CANVAS_RESIZE ? 'lock' : 'unlock';
+      document.getElementById('canvasLockImage').src='images/'+img+'.png';
+    }
+
+    Paint.prototype.allowCanvasResize = function(i){
+      return !CANVAS_RESIZE ? i: '';
+    }
 
     Paint.prototype.getResizingSide = function (mouseX, mouseY) { //the side we'd be resizing with the current mouse position
         //we can resize if our perpendicular distance to an edge is less than RESIZING_RADIUS
 
-
         if (Math.abs(mouseX - this.paintingRectangle.left) <= RESIZING_RADIUS && Math.abs(mouseY - this.paintingRectangle.getTop()) <= RESIZING_RADIUS) { //top left
-            return ResizingSide.TOP_LEFT;
+            return this.allowCanvasResize(ResizingSide.TOP_LEFT);
         }
 
         if (Math.abs(mouseX - this.paintingRectangle.getRight()) <= RESIZING_RADIUS && Math.abs(mouseY - this.paintingRectangle.getTop()) <= RESIZING_RADIUS) { //top right
-            return ResizingSide.TOP_RIGHT;
+            return this.allowCanvasResize(ResizingSide.TOP_RIGHT);
         }
 
         if (Math.abs(mouseX - this.paintingRectangle.left) <= RESIZING_RADIUS && Math.abs(mouseY - this.paintingRectangle.bottom) <= RESIZING_RADIUS) { //bottom left
-            return ResizingSide.BOTTOM_LEFT;
+            return this.allowCanvasResize(ResizingSide.BOTTOM_LEFT);
         }
 
         if (Math.abs(mouseX - this.paintingRectangle.getRight()) <= RESIZING_RADIUS && Math.abs(mouseY - this.paintingRectangle.bottom) <= RESIZING_RADIUS) { //bottom right
-            return ResizingSide.BOTTOM_RIGHT;
+            return this.allowCanvasResize(ResizingSide.BOTTOM_RIGHT);
         }
 
 
         if (mouseY > this.paintingRectangle.bottom && mouseY <= this.paintingRectangle.getTop()) { //left or right
             if (Math.abs(mouseX - this.paintingRectangle.left) <= RESIZING_RADIUS) { //left
-                return ResizingSide.LEFT;
+                return this.allowCanvasResize(ResizingSide.LEFT);
             } else if (Math.abs(mouseX - this.paintingRectangle.getRight()) <= RESIZING_RADIUS) { //right
-                return ResizingSide.RIGHT;
+                return this.allowCanvasResize(ResizingSide.RIGHT);
             }
         }
-        
+
         if (mouseX > this.paintingRectangle.left && mouseX <= this.paintingRectangle.getRight()) { //bottom or top
             if (Math.abs(mouseY - this.paintingRectangle.bottom) <= RESIZING_RADIUS) { //bottom
-                return ResizingSide.BOTTOM;
+                return this.allowCanvasResize(ResizingSide.BOTTOM);
             } else if (Math.abs(mouseY - this.paintingRectangle.getTop()) <= RESIZING_RADIUS) { //top
-                return ResizingSide.TOP;
+                return this.allowCanvasResize(ResizingSide.TOP);
             }
         }
 
@@ -1079,7 +1091,7 @@ var Paint = (function () {
     };
 
     //what interaction mode would be triggered if we clicked with given mouse position
-    Paint.prototype.desiredInteractionMode = function (mouseX, mouseY) { 
+    Paint.prototype.desiredInteractionMode = function (mouseX, mouseY) {
         var mouseOverPanel = mouseX < PANEL_WIDTH && mouseY > this.canvas.height - PANEL_HEIGHT;
 
         if (mouseOverPanel) {
@@ -1148,7 +1160,7 @@ var Paint = (function () {
             if (this.resizingSide === ResizingSide.LEFT || this.resizingSide === ResizingSide.TOP_LEFT || this.resizingSide === ResizingSide.BOTTOM_LEFT) {
                 offsetX = (this.paintingRectangle.left - this.newPaintingRectangle.left) * this.resolutionScale;
             }
-            
+
             if (this.resizingSide === ResizingSide.BOTTOM || this.resizingSide === ResizingSide.BOTTOM_LEFT || this.resizingSide === ResizingSide.BOTTOM_RIGHT) {
                 offsetY = (this.paintingRectangle.bottom - this.newPaintingRectangle.bottom) * this.resolutionScale;
             }
