@@ -101,7 +101,7 @@ var Paint = (function () {
     var CANVAS_RESIZE = false;
 
 
-    var HISTORY_SIZE = 4; //number of snapshots we store - this should be number of reversible actions + 1
+    var HISTORY_SIZE = 25; //number of snapshots we store - this should be number of reversible actions + 1
 
 
     function pascalRow (n) {
