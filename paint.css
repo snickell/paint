@@ -41,6 +41,16 @@ body {
     cursor: pointer;
 
     pointer-events: auto;
+    text-decoration: none;
+}
+.checkbox {
+    display: inline-block;
+    text-align: center;
+    color: white;
+
+    cursor: pointer;
+
+    pointer-events: auto;
 }
 
 #clear-button {
@@ -236,4 +246,16 @@ body {
     cursor: default;
 
     background: #666666;
+}
+.canvasLockContainer{
+  display: inline-block;
+  width: 13px;
+}
+
+#canvasLockImage{
+  position: absolute;
+  top: 0;
+  left: 0;
+  cursor: pointer;
+  width: 13px;
 }
